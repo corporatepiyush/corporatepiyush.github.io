@@ -92,6 +92,7 @@
     <hr>
 
     <div id="container"></div>
+    <audio id="burstBubble" src="burst_bubble.mp3"></audio>
 
     <script type="text/javascript">
         (function (browser, csp, document) {
@@ -101,6 +102,7 @@
             const secondsRemaining = document.getElementById("secondsRemaining")
             const gameStatus = document.getElementById("gameStatus")
             const container = document.getElementById("container")
+            const audio = document.getElementById('burstBubble')
 
             // Score update
             const scoreChannel = csp.chan();
@@ -121,12 +123,12 @@
 
                 element.addEventListener('click', function () {
                     csp.go(function* burstBubbleAndUpdateScore() {
+                        audio.play()
                         yield csp.put(timerChannel, true)
                         continueLoop = false;
-                        const scoreForBubble = element.textContent
                         element.style.visibility = "hidden"
-                        yield csp.put(scoreChannel, parseInt(scoreForBubble))
-                        yield csp.sleep(500)
+                        yield csp.put(scoreChannel, parseInt(element.textContent))                        
+                        yield csp.sleep(100)
                         element.remove()
                     })
                 })
