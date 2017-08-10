@@ -2,11 +2,15 @@
 
 <head>
     <meta charset="UTF-8"></meta>
-    <title>Events</title>
+    <title>Bubble Burster</title>
     <script type="text/javascript" src="js-csp.min.js"></script>
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
     <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
     <style>
+        body {
+            font-family: Georgia, Arial;
+        }
+
         .c_0 {
             background-color: black;
         }
@@ -50,49 +54,112 @@
 </head>
 
 <body style="background-color:black;color:white;margin:0;">
+    <hr>
+    <p>
+        <table style="width:100%; text-align:center">
+            <thead>
+                <tr>
+                    <th colspan="4" id="gameStatus">
+                        Burst the bubble or wait 5 seconds
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td> <b> Score </b> </td>
+                    <td id="totalScore">0</td>
+                    <td> <b> Seconds Remaining </b> </td>
+                    <td id="secondsRemaining">30</td>
+                </tr>
+            </tbody>
+        </table>
+    </p>
+    <hr>
 
-
-    <div id="container">
-
-    </div>
-
+    <div id="container"></div>
 
     <script type="text/javascript">
-        function loopIncrementer(id) {
+        (function (browser, csp, document) {
+            const totalBubbles = 100
+            var stopGame = false;
+            const totalScore = document.getElementById("totalScore")
+            const secondsRemaining = document.getElementById("secondsRemaining")
+            const gameStatus = document.getElementById("gameStatus")
+            const container = document.getElementById("container")
 
-            return function* () {
-                var element = $("#" + id)
-                var continueLoop = true;
+            // Score update
+            const scoreChannel = csp.chan();
+            csp.go(function* updateTotalScore() {
+                while (true) {
+                    const score = yield csp.take(scoreChannel)
+                    totalScore.textContent = parseInt(totalScore.textContent) + score
+                }
+            })
+
+            // Track and Update time remaining for end of game
+            const timerChannel = csp.chan()
+
+            // update bubble score value at random interval less than half a second
+            function loopIncrementer(id) {
+                const element = $("#" + id)
+                var continueLoop = true
 
                 element.click(function () {
-                    continueLoop = false;
-                    element.css('visibility', 'hidden')
-
-                    setTimeout(function () {
+                    csp.go(function* burstBubbleAndUpdateScore() {
+                        yield csp.put(timerChannel, true)
+                        continueLoop = false;
+                        const scoreForBubble = element.text()
+                        element.css('visibility', 'hidden')
+                        yield csp.put(scoreChannel, parseInt(scoreForBubble))
+                        yield csp.sleep(500)
                         element.remove()
-                    }, 1000)
+                    })
                 })
 
-                while (continueLoop) {
-                    yield csp.timeout(Math.floor(Math.random() * 500));
-                    // yield csp.timeout(100);
-                    var number = parseInt(element.text())
-                    number = number === 9 ? 0 : number + 1
-                    element.text(number)
-                    element.attr('class', `c_${number}`)
-                };
+                return function* incrementLoop() {
+                    while (!stopGame && continueLoop) {
+                        yield csp.sleep(Math.floor(Math.random() * 500));
+                        let number = parseInt(element.text())
+                        number = number === 9 ? 0 : number + 1
+                        element.text(number)
+                        element.attr('class', `c_${number}`)
+                    };
+                }
             }
-        }
 
+            function* startGame() {
+                // lets play the game
+                for (let i = 0; i < totalBubbles; i++) {
+                    const id = `id_${i}`
+                    $("#container").append(
+                        `<div id="${id}" style="float:left;width:50px;height:50px; padding:4px;margin:10px; text-align:center; font-weight:bold;font-size:25px;border-radius:100%;line-height:2;" class="point"> ${Math.floor(Math.random() * 10)} </div>`
+                    )
+                    csp.go(loopIncrementer(id))
+                }
 
-        for (var i = 0; i < 50; i++) {
-            var id = `id_${i}`
-            $("#container").append(
-                `<div id="${id}" style="float:left;width:50px;height:50px; padding:4px;margin:10px; text-align:center; font-weight:bold;font-size:25px;border-radius:100%;line-height:2;" class="point"> ${Math.floor(Math.random() * 10)} </div>`
-            )
+                yield csp.alts([timerChannel, csp.timeout(5000)])
+                timerChannel.close() //TODO can use promise instead ?
+                gameStatus.textContent = "Game ON"
+                while (true) {
+                    const seconds = parseInt(secondsRemaining.textContent)
+                    if (seconds === 0) {
+                        stopGame = true
+                        gameStatus.textContent = 'Game OVER'
+                        yield csp.sleep(100)
+                        container.innerHTML = ''
+                        break;
+                    }
+                    yield csp.sleep(1000)
+                    secondsRemaining.textContent = seconds - 1
+                }
 
-            csp.go(loopIncrementer(id));
-        }
+                browser.alert(`Your score is ${totalScore.textContent}.`)
+                browser.location.reload();
+            }
+
+            csp.go(startGame)
+
+        })(window, window.csp, window.document)
     </script>
 </body>
 
