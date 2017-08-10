@@ -14,6 +14,7 @@
     <style>
         body {
             font-family: Georgia, Arial;
+            cursor:pointer;
         }
 
         .c_0 {
@@ -143,14 +144,15 @@
 
             function* startGame() {
                 // lets play the game
+                let containerHtml = ''
                 for (let i = 0; i < totalBubbles; i++) {
                     const id = `id_${i}`
-                    document.getElementById('container').innerHTML +=`
+                    containerHtml +=`
                         <div id="${id}" style="float:left;width:50px;height:50px; padding:4px;margin:10px; text-align:center; font-weight:bold;font-size:25px;border-radius:100%;line-height:2;" class="point"> 
                             ${Math.floor(Math.random() * 10)} 
                         </div>`
                 }
-
+                container.innerHTML = containerHtml
                 for (let i = 0; i < totalBubbles; i++) {
                     const id = `id_${i}`
                     csp.go(loopIncrementer(id))
