@@ -1,11 +1,16 @@
+<!DOCTYPE html>
 <html>
-
 <head>
     <meta charset="UTF-8"></meta>
     <title>Bubble Burster</title>
     <script type="text/javascript" src="js-csp.min.js"></script>
-    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
     <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
+    <meta name="description" content="Bubble Burster - Online HTML Game">
+    <meta name="keywords" content="HTML5 Game, CSP, ES6">
+    <meta name="author" content="Piyush Katariya">
+    <meta name="citation_keywords" content="HTML5 Game, CSP, ES6">
+    <meta name="citation_authors" content="Piyush Katariya">
+
     <style>
         body {
             font-family: Georgia, Arial;
@@ -110,15 +115,15 @@
 
             // update bubble score value at random interval less than half a second
             function loopIncrementer(id) {
-                const element = $("#" + id)
+                const element = document.getElementById(id)
                 var continueLoop = true
 
-                element.click(function () {
+                element.addEventListener('click', function () {
                     csp.go(function* burstBubbleAndUpdateScore() {
                         yield csp.put(timerChannel, true)
                         continueLoop = false;
-                        const scoreForBubble = element.text()
-                        element.css('visibility', 'hidden')
+                        const scoreForBubble = element.textContent
+                        element.style.visibility = "hidden"
                         yield csp.put(scoreChannel, parseInt(scoreForBubble))
                         yield csp.sleep(500)
                         element.remove()
@@ -128,10 +133,10 @@
                 return function* incrementLoop() {
                     while (!stopGame && continueLoop) {
                         yield csp.sleep(Math.floor(Math.random() * 500));
-                        let number = parseInt(element.text())
+                        let number = parseInt(element.textContent)
                         number = number === 9 ? 0 : number + 1
-                        element.text(number)
-                        element.attr('class', `c_${number}`)
+                        element.textContent = number
+                        element.className = `c_${number}`
                     };
                 }
             }
@@ -140,9 +145,14 @@
                 // lets play the game
                 for (let i = 0; i < totalBubbles; i++) {
                     const id = `id_${i}`
-                    $("#container").append(
-                        `<div id="${id}" style="float:left;width:50px;height:50px; padding:4px;margin:10px; text-align:center; font-weight:bold;font-size:25px;border-radius:100%;line-height:2;" class="point"> ${Math.floor(Math.random() * 10)} </div>`
-                    )
+                    document.getElementById('container').innerHTML +=`
+                        <div id="${id}" style="float:left;width:50px;height:50px; padding:4px;margin:10px; text-align:center; font-weight:bold;font-size:25px;border-radius:100%;line-height:2;" class="point"> 
+                            ${Math.floor(Math.random() * 10)} 
+                        </div>`
+                }
+
+                for (let i = 0; i < totalBubbles; i++) {
+                    const id = `id_${i}`
                     csp.go(loopIncrementer(id))
                 }
 
