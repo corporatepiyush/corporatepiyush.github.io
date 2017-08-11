@@ -22,66 +22,67 @@
         body {
             font-family: Georgia, Arial;
             cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .c_0 {
             background-color: black;
-            transform:translate(20px,20px);
-            transition:all 1s ease;
+            transform: translate(20px, 20px);
+            transition: all 1s ease;
         }
 
         .c_1 {
             background-color: green;
-            transform:translate(-20px,-20px);
-            transition:all 1s ease;
+            transform: translate(-20px, -20px);
+            transition: all 1s ease;
         }
 
         .c_2 {
             background-color: blue;
-            transform:translate(20px,20px);
-            transition:all 1s ease;
+            transform: translate(20px, 20px);
+            transition: all 1s ease;
         }
 
         .c_3 {
             background-color: orange;
-            transform:translate(-20px,-20px);
-            transition:all 1s ease;
+            transform: translate(-20px, -20px);
+            transition: all 1s ease;
         }
 
         .c_4 {
             background-color: purple;
-            transform:translate(20px,20px);
-            transition:all 1s ease;
+            transform: translate(20px, 20px);
+            transition: all 1s ease;
         }
 
         .c_5 {
             background-color: pink;
-            transform:translate(-20px,-20px);
-            transition:all 1s ease;
+            transform: translate(-20px, -20px);
+            transition: all 1s ease;
         }
 
         .c_6 {
             background-color: grey;
-            transform:translate(20px,20px);
-            transition:all 1s ease;
+            transform: translate(20px, 20px);
+            transition: all 1s ease;
         }
 
         .c_7 {
             background-color: magenta;
-            transform:translate(-20px,-20px);
-            transition:all 1s ease;
+            transform: translate(-20px, -20px);
+            transition: all 1s ease;
         }
 
         .c_8 {
             background-color: brown;
-            transform:translate(20px,20px);
-            transition:all 1s ease;
+            transform: translate(20px, 20px);
+            transition: all 1s ease;
         }
 
         .c_9 {
             background-color: indigo;
-            transform:translate(-20px,-20px);
-            transition:all 1s ease;
+            transform: translate(-20px, -20px);
+            transition: all 1s ease;
         }
 
         .not-selectable {
@@ -177,9 +178,11 @@
             // Score update
             const scoreChannel = csp.chan();
             csp.go(function* updateTotalScore() {
+                let totalScoreValue = 0
                 while (true) {
                     const score = yield csp.take(scoreChannel)
-                    totalScore.textContent = parseInt(totalScore.textContent) + score
+                    totalScoreValue += score
+                    totalScore.textContent = totalScoreValue
                 }
             })
 
@@ -204,9 +207,9 @@
                 })
 
                 return function* incrementLoop() {
+                    let number = parseInt(element.textContent)
                     while (!stopGame && continueLoop) {
-                        yield csp.sleep(Math.floor(Math.random() * 500));
-                        let number = parseInt(element.textContent)
+                        yield csp.sleep(Math.floor(Math.random() * 500))
                         number = number === 9 ? 0 : number + 1
                         element.textContent = number
                         element.className = `c_${number}`
@@ -219,7 +222,8 @@
                 let containerHtml = ''
                 for (let i = 0; i < totalBubbles; i++) {
                     const id = `id_${i}`
-                    containerHtml +=`
+                    containerHtml +=
+                        `
                         <div id="${id}" style="float:left;width:50px;height:50px; padding:4px;margin:10px; text-align:center; font-weight:bold;font-size:25px;border-radius:100%;line-height:2;" class="point"> 
                             ${Math.floor(Math.random() * 10)} 
                         </div>`
