@@ -27,62 +27,62 @@
 
         .c_0 {
             background-color: black;
-            transform: translate(20px, 20px);
-            transition: all 0.5s ease;
+            transform: translate(10px, 10px);
+            transition: all 1s ease;
         }
 
         .c_1 {
             background-color: green;
-            transform: translate(-20px, -20px);
-            transition: all 0.5s ease;
+            transform: translate(-10px, -10px);
+            transition: all 1s ease;
         }
 
         .c_2 {
             background-color: blue;
-            transform: translate(20px, 20px);
-            transition: all 0.5s ease;
+            transform: translate(10px, 10px);
+            transition: all 1s ease;
         }
 
         .c_3 {
             background-color: orange;
-            transform: translate(-20px, -20px);
-            transition: all 0.5s ease;
+            transform: translate(-10px, -10px);
+            transition: all 1s ease;
         }
 
         .c_4 {
             background-color: purple;
-            transform: translate(20px, 20px);
-            transition: all 0.5s ease;
+            transform: translate(10px, 10px);
+            transition: all 1s ease;
         }
 
         .c_5 {
             background-color: pink;
-            transform: translate(-20px, -20px);
-            transition: all 0.5s ease;
+            transform: translate(-10px, -10px);
+            transition: all 1s ease;
         }
 
         .c_6 {
             background-color: grey;
-            transform: translate(20px, 20px);
-            transition: all 0.5s ease;
+            transform: translate(10px, 10px);
+            transition: all 1s ease;
         }
 
         .c_7 {
             background-color: magenta;
-            transform: translate(-20px, -20px);
-            transition: all 0.5s ease;
+            transform: translate(-10px, -10px);
+            transition: all 1s ease;
         }
 
         .c_8 {
             background-color: brown;
-            transform: translate(20px, 20px);
-            transition: all 0.5s ease;
+            transform: translate(10px, 10px);
+            transition: all 1s ease;
         }
 
         .c_9 {
             background-color: indigo;
-            transform: translate(-20px, -20px);
-            transition: all 0.5s ease;
+            transform: translate(-10px, -10px);
+            transition: all 1s ease;
         }
 
         .not-selectable {
@@ -162,13 +162,11 @@
     <script type="text/javascript">
         (function (browser, csp, document) {
             const totalBubbles = 100
-            var stopGame = false;
             const totalScore = document.getElementById("totalScore")
             const secondsRemaining = document.getElementById("secondsRemaining")
             const gameStatus = document.getElementById("gameStatus")
             const container = document.getElementById("container")
             const audio = document.getElementById('burstBubble')
-
             const arena = document.getElementById('arena')
             const gameResults = document.getElementById('gameResults')
             const scoreResults = document.getElementById('scoreResults')
@@ -192,61 +190,61 @@
             // update bubble score value at random interval less than half a second
             function loopIncrementer(id) {
                 const element = document.getElementById(id)
-                var continueLoop = true
+                const bubbleChannel = csp.chan()
 
                 element.addEventListener('click', function () {
                     csp.go(function* burstBubbleAndUpdateScore() {
                         audio.play()
                         yield csp.put(timerChannel, true)
-                        continueLoop = false;
-                        element.style.visibility = "hidden"
                         yield csp.put(scoreChannel, parseInt(element.textContent))
-                        yield csp.sleep(250)
+                        yield csp.put(bubbleChannel, "die")
+                        yield csp.timeout(250)
                         element.remove()
                     })
                 })
 
-                return function* incrementLoop() {
+                return [bubbleChannel, function* incrementLoop() {
                     let number = parseInt(element.textContent)
-                    while (!stopGame && continueLoop) {
-                        yield csp.sleep(Math.floor(Math.random() * 500))
+                    while (true) {
+                        const channel = yield csp.alts(
+                            [bubbleChannel, csp.timeout(Math.floor(Math.random() * 1000))])
+                        if (channel.value === "die")
+                            break;
                         number = number === 9 ? 0 : number + 1
                         element.textContent = number
                         element.className = `c_${number}`
                     };
-                }
+                }]
             }
 
-            function* startGame() {
+            csp.go(function* startGame() {
                 // lets play the game
                 let containerHtml = ''
+                const bubbleIds = []
                 for (let i = 0; i < totalBubbles; i++) {
                     const id = `id_${i}`
                     containerHtml +=
-                        `
-                        <div id="${id}" style="float:left;width:50px;height:50px; padding:4px;margin:10px; text-align:center; font-weight:bold;font-size:25px;border-radius:100%;line-height:2;" class="point"> 
+                        `<div id="${id}" style="float:left;width:50px;height:50px; padding:4px;margin:10px; text-align:center; font-weight:bold;font-size:25px;border-radius:100%;line-height:2;" class="point"> 
                             ${Math.floor(Math.random() * 10)} 
                         </div>`
+                    bubbleIds.push(id)
                 }
                 container.innerHTML = containerHtml
-                for (let i = 0; i < totalBubbles; i++) {
-                    const id = `id_${i}`
-                    csp.go(loopIncrementer(id))
-                }
-
+                const bubbles = bubbleIds.map((id) => loopIncrementer(id))
+                bubbles.forEach(([_, goroutine]) => csp.go(goroutine)) // spawn 1 goroutine per bubble
                 yield csp.alts([timerChannel, csp.timeout(5000)])
                 timerChannel.close() //TODO can use promise instead ?
                 gameStatus.textContent = "Game ON"
                 let seconds = parseInt(secondsRemaining.textContent)
                 while (true) {
                     if (seconds === 0) {
-                        stopGame = true
+                        bubbles.forEach(([bubbleChannel, _]) => csp.putAsync(bubbleChannel, "die"))
                         gameStatus.textContent = 'Game OVER'
-                        yield csp.sleep(100)
+                        yield csp.timeout(100)
                         container.innerHTML = ''
                         break;
                     }
-                    yield csp.sleep(1000)
+                    yield csp.timeout(1000)
                     seconds -= 1
                     secondsRemaining.textContent = seconds
                 }
@@ -254,9 +252,7 @@
                 arena.style.display = 'none';
                 gameResults.style.display = 'block';
                 scoreResults.innerHTML = `Your score is ${totalScore.textContent}.`
-            }
-
-            csp.go(startGame)
+            })
 
         })(window, window.csp, window.document)
     </script>
